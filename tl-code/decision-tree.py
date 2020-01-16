@@ -325,7 +325,7 @@ class DecisionTreeClassifier(object):
         total_num = len(labels)
 
         # 获取每个类别的个数
-        labels_dict = dict(Counter(labels))
+        labels_dict = Counter(labels)
 
         p_sum = 0.0
 
