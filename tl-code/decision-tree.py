@@ -330,8 +330,8 @@ class DecisionTreeClassifier(object):
         p_sum = 0.0
 
         # 计算基尼指数
-        for i in labels_dict:
-            p_sum += (labels_dict[i] / total_num) ** 2
+        for val in labels_dict.values():
+            p_sum += (val / total_num) ** 2
 
         gini = 1 - p_sum
 
