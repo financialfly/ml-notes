@@ -1,5 +1,6 @@
 """
 team learning 决策树 代码实现
+参考自：https://github.com/JJackMoO/TLDC/blob/master/Task4_decision_tree.ipynb
 """
 import copy
 from collections import Counter
