@@ -1,19 +1,17 @@
 """
-决策树
+team learning 决策树 代码实现
 """
 import copy
 from collections import Counter
-from typing import Optional
 
-import numpy as np
 import pandas as pd
 
 
 class DecisionTree(object):
-    """决策树 数据结构
+    """自定的树结构,用来保存决策树.
 
-     Parameters:
-    -----------
+    Paramters:
+    ----------
     col: int, default(-1)
         当前使用的第几列数据
 
@@ -29,26 +27,23 @@ class DecisionTree(object):
         右子树, > val
 
     results:
-
     """
-    def __init__(self, col: int=-1,
-                 val=None,
-                 left_child=None,
-                 right_child=None,
-                 result=None):
+
+    # 决策树初始化
+    def __init__(self, col=-1, val=None, LeftChild=None, RightChild=None, result=None):
         self.col = col
         self.val = val
-        self.left_child = left_child
-        self.right_child = right_child
+        self.LeftChild = LeftChild
+        self.RightChild = RightChild
         self.result = result
 
 
 class DecisionTreeClassifier(object):
-    """使用基尼系数的分类决策树接口
+    """使用基尼指数的分类决策树接口.
 
-    Parameters:
-    -----------
-    max_depth: int or None, optional(default=None)
+    Paramters:
+    ---------
+    max_depth : int or None, optional(dafault=None)
         表示决策树的最大深度. None: 表示不设置深度,可以任意扩展,
         直到叶子节点的个数小于min_samples_split个数.
 
@@ -79,6 +74,8 @@ class DecisionTreeClassifier(object):
     tree_ : Tree object
         The underlying Tree object.
     """
+
+    # 分类器初始化
     def __init__(self,
                  max_depth=None,
                  min_samples_split=2,
@@ -95,53 +92,116 @@ class DecisionTreeClassifier(object):
         self.decision_tree = None
         self.all_feats = None
 
-    def fit(self, X, y):
-        """使用X和y训练决策树的分类模型
+    def fit(self, X, y, check_input=True):
+        """使用X和y训练决策树的分类模型.
 
         Parameters
         ----------
         X : {array-like} of shape (n_samples, n_features)
-         The training input samples. Internally, it will be converted to
-         ``dtype=np.float32``
+            The training input samples. Internally, it will be converted to
+            ``dtype=np.float32``
 
         y : array-like of shape (n_samples,) or (n_samples, n_outputs)
-         The target values (class labels) as integers or strings.
+            The target values (class labels) as integers or strings.
 
         check_input : bool, (default=True)
-         Allow to bypass several input checking.
+            Allow to bypass several input checking.
 
         Returns
         -------
         self : object
-         Fitted estimator.
+            Fitted estimator.
         """
-        if isinstance(X, list):
-            X = self._check_array(X)
-        if isinstance(y, list):
-            y = self._check_array(y)
+        if isinstance(X, list):  # 判断X是否为列表 list
+            X = self.__check_array(X)
+        if isinstance(y, list):  # 判断y是否为列表 list
+            y = self.__check_array(y)
+        if X.shape[0] != y.shape[0]:  # 判断维度是否匹配
+            raise ValueError("输入的数据X和y长度不匹配")
 
-        if X.shape[0] != y.shape[0]:
-            raise ValueError('输入的数据 X 和 y 长度不匹配')
-
-        self.classes_ = list(set(y))
-
-        if isinstance(X, pd.DataFrame):
+        self.classes_ = list(set(y))  # y 标签值去重，得到标签类型
+        if isinstance(X, pd.DataFrame):  # 判断数据类型是否为 pd。DataFrame
             X = X.values
         if isinstance(y, pd.DataFrame):
             y = y.values
 
-        data_origin = np.c_[X, y]
-        self.all_feats = [i for i in range(X.shape[1])]
-        self.max_features_ = X.shape[0]
+        data_origin = np.c_[X, y]  # 原始数据
+        #         print (data_origin)
+        self.all_feats = [i for i in range(X.shape[1])]  # 所有特征名
+        self.max_features_ = X.shape[0]  # 样本数量
 
         data = copy.deepcopy(data_origin)
-        self.decision_tree = self._build_tree(data, 0)
+        self.decision_tree = self.__build_tree(data, 0)  # 建树
 
-    def _build_tree(self, data, depth):
+    def __predict_one(self, input_x):
+        """预测一个样例的返回结果.
+
+        Paramters:
+        ---------
+        input_x : list or np.ndarray
+            需要预测输入数据
+
+        Returns:
+        -------
+        class : 对应的类
+        """
+
+        tree = self.decision_tree
+        # ============================= show me your code =======================
+        # here
+        while tree.result is None:
+            val = input_x[tree.col]
+
+            if isinstance(val, str):
+                tree = tree.LeftChild if val == tree.val else tree.RightChild
+            elif isinstance(val, (int, float)):
+                tree = tree.LeftChild if val <= tree.val else tree.RightChild
+            else:
+                raise ValueError()
+
+        # ============================= show me your code =======================
+        return tree.result
+
+    def predict(self, test):
+        """预测函数,
+
+        Paramters:
+        ---------
+        test: {array-like} of shape (n_samples, n_features)
+
+        Returns:
+        result : np.array(list)
+        """
+        result = []
+        for i in range(len(test)):
+            result.append(self.__predict_one(test[i]))
+        return np.array(result)
+
+    def score(self, vali_X, vali_y):
+        """验证模型的特征,这里使用准确率.
+        Parameters
+        ----------
+        vali_X : {array-like} of shape (n_samples, n_features)
+            The training input samples. Internally, it will be converted to
+            ``dtype=np.float32``
+
+        vali_y : array-like of shape (n_samples,) or (n_samples, n_outputs)
+            The target values (class labels) as integers or strings.
+
+        Returns:
+        -------
+        score : float, 预测的准确率
+        """
+        vali_y = np.array(vali_y)
+        pre_y = self.predict(vali_X)
+        pre_score = 1.0 * sum(vali_y == pre_y) / len(vali_y)
+        return pre_score
+
+    def __build_tree(self, data, depth):
         """创建决策树的主要代码
 
-        Parameters:
-        -----------
+        Paramters:
+        ---------
         data : {array-like} of shape (n_samples, n_features) + {label}
             The training input samples. Internally, it will be converted to
             ``dtype=np.float32``
@@ -176,25 +236,29 @@ class DecisionTreeClassifier(object):
             return DecisionTree(result=np.argmax(np.bincount(data[:, -1].astype(int))))
 
         # 根据基尼指数选择每个分割的最优特征
-        best_idx, best_val, min_gini = self._get_best_feature(data)
-        print("Current best Feature:", best_idx, best_val, min_gini)
+        best_idx, best_val, min_gini = self.__getBestFeature(data)
+        #         print ("Current best Feature:", best_idx, best_val, min_gini)
         # 如果当前的gini指数小于指定阈值,直接返回
         if min_gini < self.min_impurity_split:
             return DecisionTree(result=np.argmax(np.bincount(data[:, -1].astype(int))))
 
-        leftData, rightData = self._split_data(data, best_idx, best_val)
+        leftData, rightData = self.__splitData(data, best_idx, best_val)
 
         # ============================= show me your code =======================
+
         # here
-        leftDecisionTree = self._build_tree(leftData, depth+1)
-        rightDecisionTree = self._build_tree(rightData, depth+1)
+        # 构建左子树
+        leftDecisionTree = self.__build_tree(data=leftData, depth=depth+1)
+        # 构建右子树
+        rightDecisionTree = self.__build_tree(data=rightData, depth=depth+1)
+
         # ============================= show me your code =======================
 
-        return DecisionTree(col=best_idx, val=best_val, left_child=leftDecisionTree, right_child=rightDecisionTree)
+        return DecisionTree(col=best_idx, val=best_val, LeftChild=leftDecisionTree, RightChild=rightDecisionTree)
 
-    def _get_best_feature(self, data):
+    def __getBestFeature(self, data):
         """得到最优特征对应的列
-        Parameters:
+        Paramters:
         ---------
         data: np.ndarray
             从data中选择最优特征
@@ -208,23 +272,30 @@ class DecisionTreeClassifier(object):
         min_gini = 1.0
         # 遍历现在可以使用的特征列
         # ============================= show me your code =======================
+
         # here
-        currentGain = self.gini(data)
-        rows_length = len(data)
+        # 遍历特征
+        for featColumn in self.all_feats:
 
-        for col in self.all_feats:
+            data_with_feature = data[:, featColumn]  # 当前特征的所有样本值
 
-            col_value_set = set([x[col] for x in data])
-            for value in col_value_set:
+            for val in data_with_feature:
+                leftData, rightData = self.__splitData(data, featColumn, val)  # 划分数据
 
-                left, right = self._split_data(data, col, value)
-                p = len(left) / rows_length
-                gain = currentGain - p * self.gini(left) - (1 - p) * self.gini(right)
+                # 计算左子树中所有标签的基尼指数
+                left_gini = self.gini(labels=leftData[:, -1])
 
-                if gain > min_gini:
-                    min_gini = gain
-                    best_idx = col
-                    best_val = value
+                # 计算右子树中所有标签的基尼指数
+                right_gini = self.gini(labels=rightData[:, -1])
+
+                # 计算在特征val的条件下，集合data的基尼指数
+                current_gini = left_gini * len(leftData) / len(data) + right_gini * len(rightData) / len(data)
+
+                # 更新最小的基尼系数和最佳的分割点
+                if current_gini < min_gini:
+                    best_idx = featColumn
+                    best_val = val
+                    min_gini = current_gini
 
         # ============================= show me your code =======================
         # 删除使用过的特征
@@ -247,73 +318,74 @@ class DecisionTreeClassifier(object):
         # ============================= show me your code =======================
 
         # here
-        length = len(labels)
+        labels = self.__check_array(labels)
 
-        results = {}
-        for label in labels:
-            try:
-                results[label[-1]] += 1
-            except KeyError:
-                results[label[-1]] = 1
+        # 获取标签总数
+        total_num = len(labels)
 
-        imp = 0.0
-        for i in results:
-            imp += results[i] / length * results[i] / length
-        gini = 1 - imp
+        # 获取每个类别的个数
+        labels_dict = dict(Counter(labels))
+
+        p_sum = 0.0
+
+        # 计算基尼指数
+        for i in labels_dict:
+            p_sum += (labels_dict[i] / total_num) ** 2
+
+        gini = 1 - p_sum
 
         # ============================= show me your code =======================
         return gini
 
-    def _split_data(self, data, feat_col, val):
+    def __splitData(self, data, featColumn, val):
         '''根据特征划分数据集分成左右两部分.
-          Parameters:
-          ---------
-          data:
-            np.ndarray, 分割的数据
+        Paramters:
+        ---------
+        data: np.ndarray, 分割的数据
 
-          feat_col:
-            int, 使用第几列的数据进行分割
+        featColumn : int, 使用第几列的数据进行分割
 
-          val: int or float or str, 分割的值
-              int or float : 使用比较方式
-              str : 使用相等方式
+        val : int or float or str, 分割的值
+            int or float : 使用比较方式
+            str : 使用相等方式
 
-          Returns:
-          -------
-          leftData, RightData
-              int or left: leftData <= val < rightData
-              str : leftData = val and rightData != val
-          '''
+        Returns:
+        -------
+        leftData, RightData
+            int or left: leftData <= val < rightData
+            str : leftData = val and rightData != val
+        '''
+
         if isinstance(val, str):
-            leftData = data[data[:, feat_col] == val]
-            rightData = data[data[:, feat_col] != val]
-        elif isinstance(val, (int, float)):
-            leftData = data[data[:, feat_col] <= val]
-            rightData = data[data[:, feat_col] > val]
+            leftData = data[data[:, featColumn] == val]  # 数据集中等于当前值的划分到左子树
+            rightData = data[data[:, featColumn] != val]  # 否则划分到 右子树
+        elif isinstance(val, int) or isinstance(val, float):
+            leftData = data[data[:, featColumn] <= val]  # 数据集中小于等于当前值的划分到左子树
+            rightData = data[data[:, featColumn] > val]  # 否则划分到右子树
         else:
-            raise ValueError('except one of the [str, int, float]')
+            raise ValueError()
         return leftData, rightData
 
-    def _check_array(self, X):
+    def __check_array(self, X):
         """检查数据类型
         Parameters:
         ----------
         X : {array-like} of shape (n_samples, n_features)
             The training input samples.
 
-        Returns
+        Retures
         -------
         X: {array-like} of shape (n_samples, n_features)
         """
         if isinstance(X, list):
             X = np.array(X)
-        if not isinstance(X, (np.ndarray, pd.DataFrame)):
-            raise ValueError("输出数据不合法, 目前只支持 np.ndarray or pd.DataFrame")
+        if not isinstance(X, np.ndarray) and not isinstance(X, pd.DataFrame):
+            raise ValueError("输出数据不合法,目前只支持np.ndarray or pd.DataFrame")
         return X
 
 
 if __name__ == '__main__':
-
+    import numpy as np
     from sklearn.datasets import load_iris
     from sklearn.model_selection import train_test_split
 
